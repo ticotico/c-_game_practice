@@ -1,0 +1,104 @@
+#include <cstdio>
+#include <cmath>
+#include <cstring>
+
+const float radius = 50;
+class Unit {
+public:
+	float x, y;
+	int hp;
+
+	//計算兩個 Unit 的距離
+	float getLength(Unit& target) {
+		return sqrt((x - target.x) * (x - target.x)
+			+ (y - target.y) * (y - target.y));
+	}
+
+	// 移動 Unit 的座標
+	void shift(float dx, float dy) {
+		x += dx;
+		y += dy;
+	}
+
+	// Unit 朝 target 移動
+	void move(Unit& target) {
+		float L = getLength(target);
+		float m = 3; // Unit 移動的速度
+		if (m >= L) {
+			x = target.x;
+			y = target.y;
+		}
+		else {
+			x += (target.x - x) * m / L;
+			y += (target.y - y) * m / L;
+		}
+		
+	}
+
+	// Unit 對 target 的攻擊行為
+	void attack(Unit& target, int atk) {
+		float L = getLength(target);
+		if (hp > 0 && L <= 2 * radius)
+			target.hp -= atk;
+	}
+
+	// 在 HDC 上畫出 Unit
+	void draw(HDC& hdc) {
+		if (hp > 0) {
+			Ellipse(hdc, x - radius, y - radius, x + radius, y + radius);
+			char buf[256];
+			sprintf_s(buf, "hp:%d/100", hp);
+			TextOut(hdc, x - 35, y, buf, strlen(buf));
+		}
+	}
+};
+
+Unit player;
+const int MONSTER_COUNT = 30;
+Unit monster[MONSTER_COUNT];
+
+void gameInit()
+{
+	player.x = 200;
+	player.y = 200;
+	player.hp = 100;
+
+	for (int i = 0; i < MONSTER_COUNT; i++) {
+		monster[i].x = i * 100;
+		monster[i].y = i * 200;
+		monster[i].hp = 100;
+	}
+}
+
+void gameWork()
+{
+	const float player_velocity = 10;
+	const int player_attack = 10;
+	const int monster_attack = 1;
+
+	if (GetAsyncKeyState(VK_UP))
+		player.shift(0, -player_velocity);
+	if (GetAsyncKeyState(VK_DOWN))
+		player.shift(0, player_velocity);
+	if (GetAsyncKeyState(VK_LEFT))
+		player.shift(-player_velocity, 0);
+	if (GetAsyncKeyState(VK_RIGHT))
+		player.shift(player_velocity, 0);
+	if (GetAsyncKeyState(VK_SPACE)) {
+		for (int i = 0; i < MONSTER_COUNT; i++)
+			player.attack(monster[i], player_attack);
+	}
+
+	for (int i = 0; i < MONSTER_COUNT; i++) {
+		monster[i].attack(player, monster_attack);
+		monster[i].move(player);
+	}
+		
+}
+
+void gameDraw(HDC hdc)
+{
+	player.draw(hdc);
+	for (int i = 0; i < MONSTER_COUNT; i++)
+		monster[i].draw(hdc);
+}
